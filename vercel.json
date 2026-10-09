@@ -1,0 +1,11 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "node scripts/fetch-ytdlp.js",
+  "outputDirectory": "public",
+  "functions": {
+    "api/download.js": {
+      "maxDuration": 300,
+      "includeFiles": "{bin/**,node_modules/ffmpeg-static/ffmpeg}"
+    }
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "name": "khazana-hole",
+  "version": "1.0.0",
+  "private": true,
+  "engines": { "node": "22.x" },
+  "scripts": {
+    "build": "node scripts/fetch-ytdlp.js",
+    "dev": "node dev.js"
+  },
+  "dependencies": {
+    "ffmpeg-static": "^5.2.0"
+  }
+}
