@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Khazana Hole</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:#03050a;color:#e6ecf5;font-family:Inter,"Segoe UI",system-ui,sans-serif;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+canvas{position:fixed;inset:0;z-index:0}
+body:before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;background:radial-gradient(60% 50% at 50% 30%,#1d4ed826,transparent 70%),radial-gradient(40% 40% at 85% 95%,#0ea5e91c,transparent 70%)}
+main{position:relative;z-index:1;min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding:0 16px 5vh}
+.brand{text-align:center;margin-bottom:22px}
+.brand h1{margin:0;font-weight:200;font-size:clamp(22px,4vw,34px);letter-spacing:.42em;padding-left:.42em;text-transform:uppercase;background:linear-gradient(180deg,#fff,#8fb0ff);-webkit-background-clip:text;background-clip:text;color:transparent}
+.brand p{margin:8px 0 0;font-size:11px;letter-spacing:.24em;color:#7d8ba5;text-transform:uppercase}
+.glass{width:min(680px,100%);padding:14px;border-radius:26px;background:linear-gradient(145deg,rgba(255,255,255,.09),rgba(255,255,255,.03));border:1px solid rgba(255,255,255,.12);box-shadow:0 24px 70px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.14);backdrop-filter:blur(24px) saturate(160%);-webkit-backdrop-filter:blur(24px) saturate(160%)}
+form{display:flex;gap:10px}
+input{flex:1;min-width:0;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.09);border-radius:16px;color:#fff;font-size:16px;padding:16px 18px;outline:0;transition:.2s}
+input:focus{border-color:#3b82f6aa;box-shadow:0 0 0 4px #3b82f622}
+input::placeholder{color:#64738c}
+.go{border:0;border-radius:16px;padding:0 28px;font-weight:600;font-size:15px;font-family:inherit;color:#fff;cursor:pointer;background:linear-gradient(180deg,#4f94ff,#2563eb);box-shadow:0 8px 24px #2563eb55,inset 0 1px 0 #ffffff55;transition:.2s}
+.go:hover{transform:translateY(-1px);box-shadow:0 12px 32px #2563eb88,inset 0 1px 0 #ffffff55}
+.go:active{transform:none}
+.opts{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px}
+.seg{display:flex;padding:3px;border-radius:12px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.07)}
+.seg button{border:0;background:none;color:#8594ae;font-family:inherit;font-weight:500;font-size:13px;padding:7px 16px;border-radius:9px;cursor:pointer;transition:.2s}
+.seg button:hover{color:#fff}
+.seg button.on{background:linear-gradient(180deg,#4f94ff,#2563eb);color:#fff;box-shadow:0 4px 14px #2563eb55}
+#list{max-height:28vh;overflow:auto;scrollbar-width:thin;scrollbar-color:#3b82f655 transparent}
+.item{margin-top:10px;padding:12px 14px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);font-size:13px;color:#a9b6cc;word-break:break-all;animation:in .4s ease}
+.item b{color:#e6ecf5;font-weight:500}
+.bar{height:3px;border-radius:3px;background:rgba(255,255,255,.08);margin-top:9px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#60a5fa,#3b82f6);transition:width .5s}
+.item.ok .bar i{width:100%}
+.item.err{border-color:#f8717166}.item.err .bar{display:none}
+.hint{margin:14px 0 0;text-align:center;font-size:11px;color:#56647c;letter-spacing:.05em}
+@keyframes in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media(max-width:480px){form{flex-direction:column}.go{padding:15px}}
+</style></head><body>
+<canvas id="c"></canvas>
+<main>
+<div class="brand"><h1>Khazana Hole</h1><p>Drop a link. It vanishes. It downloads.</p></div>
+<div class="glass">
+  <form id="f"><input id="u" placeholder="Paste a link — YouTube, Instagram, TikTok, images, files…" autocomplete="off" autofocus><button class="go">Download</button></form>
+  <div class="opts">
+    <div class="seg" id="sm"><button data-v="video" class="on">Video</button><button data-v="audio">Audio</button><button data-v="image">Image</button></div>
+    <div class="seg" id="sq"><button data-v="2160">4K</button><button data-v="1440">1440p</button><button data-v="1080" class="on">1080p</button><button data-v="720">720p</button></div>
+  </div>
+  <div id="list"></div>
+</div>
+<p class="hint">Only download what you have the right to.</p>
+</main>
+<script>
+var c=document.getElementById('c'),x=c.getContext('2d'),W,H,cx,cy,pull=0,fly=[],P=[],mode='video',q='1080';
+function size(){W=c.width=innerWidth;H=c.height=innerHeight;cx=W/2;cy=H*.3}
+addEventListener('resize',size);size();
+function R(){return Math.min(W,H)*.08}
+function mk(p){p=p||{};p.a=Math.random()*6.283;p.r=R()*1.4+Math.random()*Math.min(W,H)*.55;p.s=.5+Math.random()*.8;p.h=200+Math.random()*35;p.z=Math.random()*1.5+.4;return p}
+for(var i=0;i<650;i++)P.push(mk());
+function dot(p,front){
+  var px=cx+Math.cos(p.a)*p.r,py=cy+Math.sin(p.a)*p.r*.32;
+  if((Math.sin(p.a)>0)!==front)return;
+  var near=Math.max(0,1-p.r/(R()*4));
+  x.fillStyle='hsl('+p.h+',100%,'+(55+near*40)+'%)';x.globalAlpha=.3+near*.7;x.fillRect(px,py,p.z,p.z);
+}
+function frame(){
+  x.globalAlpha=1;x.fillStyle='rgba(3,5,10,.2)';x.fillRect(0,0,W,H);
+  var r0=R(),i;
+  for(i=0;i<P.length;i++){var p=P[i];p.a+=p.s*(r0*1.8/p.r)*(.022+pull*.05);p.r-=(.12+pull*2.5)*(1+r0/p.r);if(p.r<r0*.95)mk(p);}
+  for(i=0;i<P.length;i++)dot(P[i],false);
+  x.globalAlpha=1;x.beginPath();x.arc(cx,cy,r0,0,6.283);x.fillStyle='#000';
+  x.shadowColor='#3b82f6';x.shadowBlur=40+pull*80;x.fill();x.shadowBlur=0;
+  for(i=0;i<P.length;i++)dot(P[i],true);
+  x.globalAlpha=1;x.font='14px monospace';x.textAlign='center';
+  for(i=fly.length-1;i>=0;i--){var f=fly[i];f.k+=.018;var e=f.k*f.k;
+    var fx=f.x+(cx-f.x)*e+Math.sin(f.k*9)*(1-f.k)*30,fy=f.y+(cy-f.y)*e;
+    x.save();x.translate(fx,fy);x.rotate(f.k*8);x.scale(1-f.k*.95,1-f.k*.95);
+    x.fillStyle='rgba(170,205,255,'+(1-f.k*.6)+')';x.fillText(f.t,0,0);x.restore();
+    if(f.k>=1)fly.splice(i,1);}
+  pull*=.965;requestAnimationFrame(frame);
+}
+frame();
+var list=document.getElementById('list'),inp=document.getElementById('u');
+function sleep(ms){return new Promise(function(r){setTimeout(r,ms)})}
+function seg(id,cb){var el=document.getElementById(id);el.onclick=function(e){var b=e.target.closest('button');if(!b)return;
+  [].forEach.call(el.children,function(k){k.classList.remove('on')});b.classList.add('on');cb(b.dataset.v)}}
+seg('sm',function(v){mode=v;document.getElementById('sq').style.display=v=='video'?'flex':'none'});
+seg('sq',function(v){q=v});
+function set(li,t,p){li.querySelector('b').textContent=t;if(p!=null)li.querySelector('i').style.width=p+'%'}
+var KEY=''; try{KEY=localStorage.getItem('kh_key')||''}catch(e){}
+function fileName(r){var m=/filename\*=UTF-8''([^;]+)/i.exec(r.headers.get('content-disposition')||'');try{return m?decodeURIComponent(m[1]):'download'}catch(e){return 'download'}}
+async function feed(u){
+  var short=u.replace(/^https?:\/\//,'').slice(0,46);
+  fly.push({t:short,x:W/2,y:H-140,k:0});pull=1;
+  var li=document.createElement('div');li.className='item';li.innerHTML='<b></b><div class="bar"><i></i></div>';
+  set(li,'Preparing · '+short,3);list.prepend(li);
+  var fake=3,tick=setInterval(function(){fake=Math.min(35,fake+1.2);set(li,'Preparing · '+short,fake);pull=Math.max(pull,.2)},900);
+  try{
+    var url='/api/download?mode='+mode+'&q='+q+'&url='+encodeURIComponent(u),r;
+    for(var tries=0;;tries++){
+      r=await fetch(url,{headers:KEY?{'x-key':KEY}:{}});
+      if(r.status==401&&tries<2){var k=prompt('Access key');if(!k)throw Error('Access key required');KEY=k;try{localStorage.setItem('kh_key',k)}catch(e){}continue}
+      break;
+    }
+    if(!r.ok){var j=await r.json().catch(function(){return{}});throw Error(j.error||('HTTP '+r.status))}
+    clearInterval(tick);
+    var name=fileName(r),total=+r.headers.get('content-length')||0,rd=r.body.getReader(),parts=[],got=0;
+    for(;;){
+      var d=await rd.read();if(d.done)break;
+      parts.push(d.value);got+=d.value.length;pull=Math.max(pull,.2);
+      set(li,'Downloading '+(total?Math.round(got/total*100)+'%':(got/1048576).toFixed(1)+' MB')+' · '+short,total?Math.max(36,got/total*100):null);
+    }
+    var a=document.createElement('a');a.href=URL.createObjectURL(new Blob(parts));a.download=name;
+    document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(a.href)},60000);
+    li.className='item ok';set(li,'✓  '+name);
+  }catch(e){clearInterval(tick);li.className='item err';set(li,'✗  '+short+' — '+e.message)}
+}
+async function go(){
+  var urls=inp.value.split(/\s+/).filter(Boolean);inp.value='';
+  for(var i=0;i<urls.length;i++){feed(urls[i]);await sleep(700)}
+}
+document.getElementById('f').onsubmit=function(e){e.preventDefault();go()};
+inp.addEventListener('paste',function(){setTimeout(go,150)});
+</script></body></html>
